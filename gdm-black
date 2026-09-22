@@ -17,15 +17,13 @@ done
 {
     printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' \
         '<gresources>' '  <gresource prefix="/org/gnome/shell/theme">'
-    gresource list /usr/share/gnome-shell/gnome-shell-theme.gresource |
-        cut -d"/" -f6 | awk '{ printf "    <file>%s</file>\n", $0 }'
+    ls ${HOME}/shell-theme/theme | awk '{ printf "    <file>%s</file>\n", $0 }'
     printf '%s\n' '  </gresource>' '</gresources>'
 } > ${HOME}/shell-theme/theme/gnome-shell-theme.gresource.xml
 
 # Set background color to black
 sed -i '/#lockDialogGroup {/{n;s/#....../#000000/;}' \
-    ${HOME}/shell-theme/theme/gnome-shell-dark.css \
-    ${HOME}/shell-theme/theme/gnome-shell-light.css
+    $(grep -rlF '#lockDialogGroup' ${HOME}/shell-theme/theme)
 
 # Compile resources
 glib-compile-resources --sourcedir=${HOME}/shell-theme/theme \
