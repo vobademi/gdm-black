@@ -1,0 +1,11 @@
+[Trigger]
+Type = Package
+Operation = Install
+Operation = Upgrade
+Target = gnome-shell
+
+[Action]
+Description = Setting GDM background color to black...
+When = PostTransaction
+Exec = /path/to/gdm-black
+NeedsTargets

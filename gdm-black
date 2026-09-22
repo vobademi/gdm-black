@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Extract resources
+gst=/usr/share/gnome-shell/gnome-shell-theme.gresource
+workdir=${HOME}/shell-theme
+for r in `gresource list $gst`; do
+    r=${r#\/org\/gnome\/shell/}
+    if [ ! -d $workdir/${r%/*} ]; then
+        mkdir -p $workdir/${r%/*}
+    fi
+done
+for r in `gresource list $gst`; do
+    gresource extract $gst $r >$workdir/${r#\/org\/gnome\/shell/}
+done
+
+# Add gnome-shell-theme.gresource.xml
+{
+    printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' \
+        '<gresources>' '  <gresource prefix="/org/gnome/shell/theme">'
+    gresource list /usr/share/gnome-shell/gnome-shell-theme.gresource |
+        cut -d"/" -f6 | awk '{ printf "    <file>%s</file>\n", $0 }'
+    printf '%s\n' '  </gresource>' '</gresources>'
+} > ${HOME}/shell-theme/theme/gnome-shell-theme.gresource.xml
+
+# Set background color to black
+sed -i '/#lockDialogGroup {/{n;s/#....../#000000/;}' \
+    ${HOME}/shell-theme/theme/gnome-shell-dark.css \
+    ${HOME}/shell-theme/theme/gnome-shell-light.css
+
+# Compile resources
+glib-compile-resources --sourcedir=${HOME}/shell-theme/theme \
+    ${HOME}/shell-theme/theme/gnome-shell-theme.gresource.xml
+
+# Copy compiled binary and delete working directory
+cp ${HOME}/shell-theme/theme/gnome-shell-theme.gresource /usr/share/gnome-shell
+rm -rf ${HOME}/shell-theme
