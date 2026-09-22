@@ -25,7 +25,7 @@ Exec = /path/to/gdm-black
 2. Uncomment `#HookDir`:
 
 ```bash
-sed -i 's/#HookDir/HookDir/' /etc/pacman.conf
+sudo sed -i 's/#HookDir/HookDir/' /etc/pacman.conf
 ```
 
 3. Copy `gdm-black.hook` to `/etc/pacman.d/hooks`:
