@@ -1,34 +1,47 @@
 #!/bin/bash
+set -e
+
+# Check privileges
+[[ $EUID -eq 0 ]] || { echo "This script should be run with root privileges." >&2; exit 1; }
+
+# Choose color
+color="#000000"
+case $1 in
+    "")        ;;
+    --color)   color="#${2#\#}" ;;
+    --restore) color="#222226" ;;
+    *)         echo "Usage: $0 [--color \"#RRGGBB\" | --color RRGGBB | --restore]" >&2
+               exit 1 ;;
+esac
+[[ $color =~ ^#[0-9a-fA-F]{6}$ ]] || \
+{ echo "Invalid color: $color (use \"#RRGGBB\" (with \"\") or RRGGBB)" >&2; exit 1; }
+
+gst=/usr/share/gnome-shell/gnome-shell-theme.gresource
+workdir=$(mktemp -d)
+trap 'rm -rf "$workdir"' EXIT
 
 # Extract resources
-gst=/usr/share/gnome-shell/gnome-shell-theme.gresource
-workdir=${HOME}/shell-theme
-for r in `gresource list $gst`; do
-    r=${r#\/org\/gnome\/shell/}
-    if [ ! -d $workdir/${r%/*} ]; then
-        mkdir -p $workdir/${r%/*}
-    fi
-done
-for r in `gresource list $gst`; do
-    gresource extract $gst $r >$workdir/${r#\/org\/gnome\/shell/}
+for r in $(gresource list "$gst"); do
+    f=$workdir/${r#/org/gnome/shell/}
+    mkdir -p "$(dirname "$f")"
+    gresource extract "$gst" "$r" > "$f"
 done
 
-# Add gnome-shell-theme.gresource.xml
+# Generate gnome-shell-theme.gresource.xml
 {
     printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' \
         '<gresources>' '  <gresource prefix="/org/gnome/shell/theme">'
-    ls ${HOME}/shell-theme/theme | awk '{ printf "    <file>%s</file>\n", $0 }'
+    for f in "$workdir"/theme/*; do printf '    <file>%s</file>\n' "${f##*/}"; done
     printf '%s\n' '  </gresource>' '</gresources>'
-} > ${HOME}/shell-theme/theme/gnome-shell-theme.gresource.xml
+} > "$workdir/gnome-shell-theme.gresource.xml"
 
-# Set background color to black
-sed -i '/#lockDialogGroup {/{n;s/#....../#000000/;}' \
-    $(grep -rlF '#lockDialogGroup' ${HOME}/shell-theme/theme)
+# Set background color
+sed -i "/#lockDialogGroup {/{n;s/#....../$color/;}" \
+    $(grep -rlF '#lockDialogGroup' "$workdir/theme")
 
-# Compile resources
-glib-compile-resources --sourcedir=${HOME}/shell-theme/theme \
-    ${HOME}/shell-theme/theme/gnome-shell-theme.gresource.xml
+# Compile and install
+glib-compile-resources --sourcedir="$workdir/theme" \
+    --target="$workdir/new.gresource" "$workdir/gnome-shell-theme.gresource.xml"
+cp "$workdir/new.gresource" "$gst"
 
-# Copy compiled binary and delete working directory
-cp ${HOME}/shell-theme/theme/gnome-shell-theme.gresource /usr/share/gnome-shell
-rm -rf ${HOME}/shell-theme
+echo "GDM background color is set to $color"
