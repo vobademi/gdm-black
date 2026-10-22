@@ -7,5 +7,5 @@ Target = gnome-shell
 [Action]
 Description = Setting GDM background color to black...
 When = PostTransaction
-Exec = /path/to/gdm-black
+Exec = /usr/local/bin/gdm-black
 NeedsTargets
